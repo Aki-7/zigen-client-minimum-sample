@@ -49,10 +49,21 @@
 static const char vertex_shader[] =
     "#version 410\n"
     "uniform mat4 zMVP;\n"
+    "uniform float theta;\n"
     "layout(location = 0) in vec4 position;\n"
+    "\n"
+    "mat4 rotateY(float a) {\n"
+    "  return mat4(\n"
+    "      cos(a), 0, sin(a), 0,\n"
+    "           0, 1,      0, 0,\n"
+    "     -sin(a), 0, cos(a), 0,\n"
+    "           0, 0,      0, 1\n"
+    "  );\n"
+    "}\n"
+    "\n"
     "void main()\n"
     "{\n"
-    "  gl_Position = zMVP * position;\n"
+    "  gl_Position = zMVP * rotateY(theta) * position;\n"
     "}\n";
 
 static const char fragment_shader[] =
@@ -105,6 +116,36 @@ cuboid_window_move(void *data, struct zgn_cuboid_window *zgn_cuboid_window, stru
 static const struct zgn_cuboid_window_listener cuboid_window_listener = {
     .configure = cuboid_window_configure,
     .moved = cuboid_window_move,
+};
+
+static const struct wl_callback_listener frame_callback_listener;
+
+static void
+zcms_box_frame_callback_handler(void *data, struct wl_callback *wl_callback, uint32_t time)
+{
+  struct zcms_box *self = data;
+  struct wl_array theta_arr;
+  float *theta;
+  wl_callback_destroy(wl_callback);
+
+  wl_array_init(&theta_arr);
+
+  theta = wl_array_add(&theta_arr, sizeof(float));
+  *theta = (float)(time % 10000) / 10000.0 * 2 * M_PI;  // rotate 2 pi in 10 sec
+
+  zgn_opengl_shader_program_set_uniform_float_vector(self->shader, "theta", 1, 1, &theta_arr);
+  zgn_opengl_component_attach_shader_program(self->component, self->shader);
+
+  self->frame_callback = zgn_virtual_object_frame(self->virtual_object);
+  wl_callback_add_listener(self->frame_callback, &frame_callback_listener, self);
+
+  zgn_virtual_object_commit(self->virtual_object);
+
+  wl_array_release(&theta_arr);
+}
+
+static const struct wl_callback_listener frame_callback_listener = {
+    .done = zcms_box_frame_callback_handler,
 };
 
 struct zcms_box *
@@ -256,6 +297,9 @@ zcms_box_create(struct zcms_app *app, float width, float height, float depth)
   {  // clean
     munmap(buf, pool_size);
   }
+
+  self->frame_callback = zgn_virtual_object_frame(self->virtual_object);
+  wl_callback_add_listener(self->frame_callback, &frame_callback_listener, self);
 
   zgn_virtual_object_commit(self->virtual_object);
 

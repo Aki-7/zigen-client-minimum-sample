@@ -24,6 +24,8 @@ struct zcms_box {
   struct wl_buffer *element_array_buffer_buffer;
 
   struct zgn_opengl_shader_program *shader;
+
+  struct wl_callback *frame_callback;
 };
 
 struct zcms_box *
