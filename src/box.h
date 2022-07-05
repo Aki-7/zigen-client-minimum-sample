@@ -13,6 +13,17 @@ struct zcms_box {
 
   struct zgn_virtual_object *virtual_object;
   struct zgn_cuboid_window *cuboid_window;
+  struct zgn_opengl_component *component;
+
+  struct wl_shm_pool *buffer_pool;
+
+  struct zgn_opengl_vertex_buffer *vertex_buffer;
+  struct wl_buffer *vertex_buffer_buffer;
+
+  struct zgn_opengl_element_array_buffer *element_array_buffer;
+  struct wl_buffer *element_array_buffer_buffer;
+
+  struct zgn_opengl_shader_program *shader;
 };
 
 struct zcms_box *
